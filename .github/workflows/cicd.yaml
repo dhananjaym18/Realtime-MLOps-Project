@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: us-west-1
   S3_BUCKET: s3://mlops-demo-s3-dvc-models/models/
   MODEL_PATH: models/churn_model.pkl
   K8S_MANIFEST: k8s/inference.yaml
