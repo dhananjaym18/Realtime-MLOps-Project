@@ -33,6 +33,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Ensure directories exist
+        run: |
+          mkdir -p models data
+          pwd
+          ls -la
+
       - name: Generate synthetic data
         run: python generate_data.py
 
