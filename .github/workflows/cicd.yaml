@@ -55,9 +55,13 @@ jobs:
         run: |
           sed -i "s|storageUri:.*|storageUri: ${{ env.S3_BUCKET }}${{ env.MODEL_PATH }}|" ${{ env.K8S_MANIFEST }}
 
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
       - name: Deploy to Kubernetes (Docker Desktop)
-        uses: k8s-actions/deploy-manifest@v1
-        with:
-          manifests: ${{ env.K8S_MANIFEST }}
+        run: kubectl apply -f ${{ env.K8S_MANIFEST }}
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
