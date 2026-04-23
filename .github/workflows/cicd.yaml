@@ -1,0 +1,61 @@
+name: ML Model CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: s3://mlops-demo-s3-dvc-models/models/
+  MODEL_PATH: models/churn_model.pkl
+  K8S_MANIFEST: k8s/inference.yaml
+
+jobs:
+  build-and-deploy:
+    name: Build, Train, and Deploy Model
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate synthetic data
+        run: python generate_data.py
+
+      - name: Train model
+        run: python train.py
+
+      - name: Upload model to S3
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws s3 cp ${{ env.MODEL_PATH }} ${{ env.S3_BUCKET }}
+
+      - name: Update Kubernetes manifest
+        run: |
+          sed -i "s|storageUri:.*|storageUri: ${{ env.S3_BUCKET }}${{ env.MODEL_PATH }}|" ${{ env.K8S_MANIFEST }}
+
+      - name: Deploy to Kubernetes (Docker Desktop)
+        uses: k8s-actions/deploy-manifest@v1
+        with:
+          manifests: ${{ env.K8S_MANIFEST }}
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
