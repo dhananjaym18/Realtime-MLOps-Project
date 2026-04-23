@@ -1,0 +1,4 @@
+[core]
+    remote = s3dvcremote
+['remote "s3dvcremote"']
+    url = s3://mlops-demo-s3-dvc-models
