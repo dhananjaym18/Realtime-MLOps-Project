@@ -89,10 +89,14 @@ jobs:
           echo "File exists: $(if [ -f "${{ env.K8S_MANIFEST }}" ]; then echo "yes"; else echo "no"; fi)"
           ls -la "$(dirname "${{ env.K8S_MANIFEST }}")"
 
+      - name: Decode secret to file
+        env:
+          MY_KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          echo "$MY_KUBECONFIG" | base64 --decode
+      
       - name: Verify Cluster Access
         run: |
-          echo "kubeconfig value = '${{ secrets.KUBECONFIG }}'"
-          
           kubectl config view 
           kubectl get nodes
         env:
