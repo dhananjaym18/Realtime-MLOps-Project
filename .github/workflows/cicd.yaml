@@ -60,49 +60,17 @@ jobs:
           aws s3 cp ${{ env.MODEL_PATH }} ${{ env.S3_BUCKET }}/
           echo "Model pushed to S3 is success"
 
-      - name: Update Kubernetes manifest
+      - name: Update inference.yaml with S3 model path
         run: |
-          echo "Updating manifest: $K8S_MANIFEST"
-          echo "S3_BUCKET: $S3_BUCKET"
-          echo "MODEL_PATH: $MODEL_PATH"
-          MANIFEST_CONTENT=$(cat $K8S_MANIFEST)
-          echo "Original manifest:"
-          echo "$MANIFEST_CONTENT"
-          # Ensure we don't duplicate the models/ part
-          NEW_STORAGE_URI="${S3_BUCKET}/${MODEL_PATH}"
-          echo "New storage URI: $NEW_STORAGE_URI"
-          sed -i "s|storageUri:.*|storageUri: $NEW_STORAGE_URI|" $K8S_MANIFEST
-          echo "Updated manifest:"
-          cat $K8S_MANIFEST
+          MODEL_URI="${S3_BUCKET}/${MODEL_PATH}"
+          sed -i "s|storageUri: .*|storageUri: $MODEL_URI|g" k8s/inference.yaml
+    
+      - name: Commit updated inference.yaml
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add k8s/inference.yaml
+          git commit -m "Update model S3 path [skip ci]" || echo "No changes"
+          git push || echo "No changes to push"
 
-      - name: Install kubectl
-        run: |
-          echo "Installing kubectl..."
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
-
-      - name: Debug K8S_MANIFEST
-        run: |
-          echo "K8S_MANIFEST = '${{ env.K8S_MANIFEST }}'"
-          echo "File exists: $(if [ -f "${{ env.K8S_MANIFEST }}" ]; then echo "yes"; else echo "no"; fi)"
-          ls -la "$(dirname "${{ env.K8S_MANIFEST }}")"
-
-      - name: Decode secret to file
-        env:
-          MY_KUBECONFIG: ${{ secrets.KUBECONFIG }}
-        run: |
-          echo "$MY_KUBECONFIG" | base64 --decode
       
-      - name: Verify Cluster Access
-        run: |
-          kubectl config view 
-          kubectl get nodes
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
-
-      - name: Deploy to Kubernetes (Docker Desktop)
-        run: kubectl apply -f ${{ env.K8S_MANIFEST }}
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
