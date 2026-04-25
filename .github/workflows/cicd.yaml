@@ -89,6 +89,11 @@ jobs:
           echo "File exists: $(if [ -f "${{ env.K8S_MANIFEST }}" ]; then echo "yes"; else echo "no"; fi)"
           ls -la "$(dirname "${{ env.K8S_MANIFEST }}")"
 
+      - name: Verify Cluster Access
+        run: |
+          kubectl config view 
+          kubectl get nodes
+
       - name: Deploy to Kubernetes (Docker Desktop)
         run: kubectl apply -f ${{ env.K8S_MANIFEST }}
         env:
