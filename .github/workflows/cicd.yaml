@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: us-west-1
-  S3_BUCKET: s3://mlops-demo-s3-dvc-models/models/
+  S3_BUCKET: s3://mlops-demo-s3-dvc-models/models
   MODEL_PATH: models/churn_model.pkl
   K8S_MANIFEST: k8s/inference.yaml
 
@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Configure Git
         run: git config --global core.longpaths true
-  
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -57,18 +57,37 @@ jobs:
 
       - name: Upload model to S3
         run: |
-          aws s3 cp ${{ env.MODEL_PATH }} ${{ env.S3_BUCKET }}
+          aws s3 cp ${{ env.MODEL_PATH }} ${{ env.S3_BUCKET }}/
           echo "Model pushed to S3 is success"
 
       - name: Update Kubernetes manifest
         run: |
-          sed -i "s|storageUri:.*|storageUri: ${{ env.S3_BUCKET }}${{ env.MODEL_PATH }}|" ${{ env.K8S_MANIFEST }}
+          echo "Updating manifest: $K8S_MANIFEST"
+          echo "S3_BUCKET: $S3_BUCKET"
+          echo "MODEL_PATH: $MODEL_PATH"
+          MANIFEST_CONTENT=$(cat $K8S_MANIFEST)
+          echo "Original manifest:"
+          echo "$MANIFEST_CONTENT"
+          # Ensure we don't duplicate the models/ part
+          NEW_STORAGE_URI="${S3_BUCKET}/${MODEL_PATH}"
+          echo "New storage URI: $NEW_STORAGE_URI"
+          sed -i "s|storageUri:.*|storageUri: $NEW_STORAGE_URI|" $K8S_MANIFEST
+          echo "Updated manifest:"
+          cat $K8S_MANIFEST
 
       - name: Install kubectl
         run: |
+          echo "Installing kubectl..."
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
+          kubectl version --client
+
+      - name: Debug K8S_MANIFEST
+        run: |
+          echo "K8S_MANIFEST = '${{ env.K8S_MANIFEST }}'"
+          echo "File exists: $(if [ -f "${{ env.K8S_MANIFEST }}" ]; then echo "yes"; else echo "no"; fi)"
+          ls -la "$(dirname "${{ env.K8S_MANIFEST }}")"
 
       - name: Deploy to Kubernetes (Docker Desktop)
         run: kubectl apply -f ${{ env.K8S_MANIFEST }}
