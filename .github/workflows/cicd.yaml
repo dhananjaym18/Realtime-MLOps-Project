@@ -60,7 +60,7 @@ jobs:
       - name: Upload model to S3
         run: |
           aws s3 cp ${{ env.MODEL_PATH }} ${{ env.S3_BUCKET }}/
-          echo "Model pushed to S3 is success"
+          echo "Model pushed to S3 is success !"
 
       - name: Update inference.yaml with S3 model path
         run: |
