@@ -92,7 +92,7 @@ jobs:
       - name: Verify Cluster Access
         run: |
           echo "kubeconfig value = '${{ secrets.KUBECONFIG }}'"
-          echo "kubeconfig value = '${{ KUBECONFIG }}'"
+          
           kubectl config view 
           kubectl get nodes
         env:
