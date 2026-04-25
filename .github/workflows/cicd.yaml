@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: us-west-1
-  S3_BUCKET: s3://mlops-demo-s3-dvc-models/models
+  S3_BUCKET: s3://mlops-demo-s3-dvc-models
   MODEL_PATH: models/churn_model.pkl
   K8S_MANIFEST: k8s/inference.yaml
 
@@ -17,6 +17,8 @@ jobs:
   build-and-deploy:
     name: Build, Train, and Deploy Model
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to push commits
 
     steps:
       - name: Configure Git
@@ -64,13 +66,5 @@ jobs:
         run: |
           MODEL_URI="${S3_BUCKET}/${MODEL_PATH}"
           sed -i "s|storageUri: .*|storageUri: $MODEL_URI|g" k8s/inference.yaml
-    
-      - name: Commit updated inference.yaml
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add k8s/inference.yaml
-          git commit -m "Update model S3 path [skip ci]" || echo "No changes"
-          git push || echo "No changes to push"
 
       
