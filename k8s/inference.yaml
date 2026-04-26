@@ -3,6 +3,8 @@ kind: InferenceService
 metadata:
     name: churn-predictor
     namespace: churn-model
+    labels:
+      app: demo-churn-mlops
 spec:
     predictor:
       serviceAccountName: sa-s3-access
